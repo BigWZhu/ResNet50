@@ -10,7 +10,7 @@ import numpy as np
 import copy
 import utils
 import os
-VGG_MEAN = [103.939, 116.779, 123.68]
+MEAN = [103.939, 116.779, 123.68]
 
 class resnet(object):
     def __init__(self):
@@ -25,9 +25,9 @@ class resnet(object):
         rgb_scaled = rgb * 255.0
         red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
         bgr = tf.concat(axis=3, values=[
-            blue - VGG_MEAN[0],
-            green - VGG_MEAN[1],
-            red - VGG_MEAN[2],
+            blue - MEAN[0],
+            green - MEAN[1],
+            red - MEAN[2],
         ])
         return bgr
        
@@ -36,27 +36,35 @@ class resnet(object):
         
         ##
 #        start_time = time.time()
-        print("build model started")
         self.rgb = tf.placeholder("float32", [None, None, None, 3])
 #        self.y_true = tf.placeholder("float32", [None,None,None, NUM_CLASSES])
         bgr = self.normal_img(self.rgb)        
         ##
         
         ## conv1
-        self.x = self.conv_block_1(bgr)
+        self.conv1 = self.conv_block_1(bgr)
 
         ## conv2
-        self.x = self._build_box(self.x, 3, '2')        
+        self.conv2 = self._build_box(self.conv1, 3, '2')        
 
         ## conv3
-        self.x = self._build_box(self.x, 4, '3')
+        self.conv3 = self._build_box(self.conv2, 4, '3')
         
         ## conv4
-        self.x = self._build_box(self.x, 6, '4')
+        self.conv4 = self._build_box(self.conv3, 6, '4')
 
         ## conv5
-        self.x = self._build_box(self.x, 3, '5')
-
+        self.conv5 = self._build_box(self.conv4, 3, '5')
+        
+        self.pool5 = tf.nn.avg_pool(self.conv5, [1,7,7,1], [1,1,1,1], 'VALID', name='pool5')
+        self.pool5_resize = tf.reshape(self.pool5, [-1,2048])
+        self.shortcut = self.pool5
+        self.fc1000 = self.fc_1000(self.pool5_resize)
+        
+        
+        self.prob = tf.nn.softmax(self.fc1000, name = 'softmax_prob')
+    
+    
         init = tf.global_variables_initializer()
 
         self.sess.run(init)
@@ -103,7 +111,6 @@ class resnet(object):
         
         
         with tf.variable_scope(name) as scope:
-#            print('\tBuilding residual unit: %s' % scope.name)
             # Residual
             x = self.conv_layer(x, stride, pos)
             x = self.bn_layer(x, pos)
@@ -132,7 +139,6 @@ class resnet(object):
                     x_id_stride = 1
                 else:
                     x_id_stride = 2
-#                print(pos,pos_ident)
                 print('stride for identity', x_id_stride)
                 x_id = self.conv_layer(x_ident, x_id_stride, pos_ident)
                 
@@ -149,7 +155,6 @@ class resnet(object):
 
     
     def get_conv_filter(self, pos_tag):
-#        name = 'res'+layer_pos+'_branch'+branch_pos
         print(pos_tag)
         return tf.Variable(self.data_dict[pos_tag]['weights'], name=pos_tag)
 
@@ -161,7 +166,11 @@ class resnet(object):
         return conv
 
 
-
+    def fc_1000(self,x):
+        w = tf.Variable(self.data_dict['fc1000']['weights'], name = 'fc_w')
+        b = tf.Variable(self.data_dict['fc1000']['biases'], name = 'fc_b')
+        y = tf.nn.bias_add(tf.matmul(x, w), b)
+        return y
 
     def get_bn_para(self, pos_tag):
         mean = tf.Variable(self.data_dict[pos_tag]['mean'], name = pos_tag + 'mean')
@@ -179,9 +188,6 @@ class resnet(object):
 
 
     def predict(self, data):
-        y = self.sess.run(self.x, feed_dict={self.rgb:data})
-        yy = self.sess.run(self.shortcut, feed_dict={self.rgb:data})
-        return y, yy
+        y = self.sess.run(self.prob, feed_dict={self.rgb:data})
+        return y
 
-#    def get_bias(self, name):
-#        return tf.Variable(self.data_dict[name][1], name="biases"+name)
