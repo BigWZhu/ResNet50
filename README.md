@@ -13,7 +13,11 @@ https://lexiondebug.blob.core.windows.net/mlmodel/models/res50.npy
 # How to use
 Just run runner.py with saved model
 
+# Environment
+Python 3.5
+tensorflow 1.5.0
 
 # Reference
 1. https://github.com/machrisaa/tensorflow-vgg
 2. http://www.deeplearningmodel.net/
+3. https://github.com/dalgu90/resnet-18-tensorflow
