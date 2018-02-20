@@ -56,7 +56,7 @@ class resnet(object):
         ## conv5
         self.conv5 = self._build_box(self.conv4, 3, '5')
         
-        self.pool5 = tf.nn.avg_pool(self.conv5, [1,7,7,1], [1,1,1,1], 'VALID', name='pool5')
+        self.pool5 = tf.nn.avg_pool(self.conv5, [1,7,7,1], [1,1,1,1], 'SAME', name='pool5')
         self.pool5_resize = tf.reshape(self.pool5, [-1,2048])
         self.shortcut = self.pool5
         self.fc1000 = self.fc_1000(self.pool5_resize)
