@@ -8,7 +8,7 @@ and http://ethereon.github.io/netscope/#/gist/db945b393d40bfa26006.
 
 # Model
 Pretrained weight can be found in 
-https://lexiondebug.blob.core.windows.net/mlmodel/models/res50.npy
+https://drive.google.com/file/d/1chAlhRacVO2Oxz9WHZiuWSlAgUtwcSGt/view?usp=sharing
 
 # How to use
 Just run runner.py with saved model
